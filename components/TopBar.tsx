@@ -15,19 +15,19 @@ export default function TopBar() {
 
   return (
     <div className="w-full flex items-center justify-between px-6 py-3 border-b">
-      <a href="/" className="font-medium">YTI</a>
+      <a href="/" className="font-heading font-medium text-base">YTI</a>
       <div className="flex items-center gap-3">
-        {isAuthed && <a className="text-sm text-gray-600 hover:underline" href="/dashboard">Dashboard</a>}
+        {isAuthed && <a className="text-sm text-gray-600 hover:underline font-medium" href="/dashboard">Dashboard</a>}
         {!isAuthed ? (
           <button
-            className="text-sm text-gray-600 hover:underline"
+            className="text-sm text-gray-600 hover:underline font-medium"
             onClick={signInWithGoogleApp}
           >
             Sign in
           </button>
         ) : (
           <button
-            className="text-sm text-gray-600 hover:underline"
+            className="text-sm text-gray-600 hover:underline font-medium"
             onClick={async () => { const s = getSupabaseBrowserClient(); await s.auth.signOut(); window.location.href = "/"; }}
           >
             Sign out

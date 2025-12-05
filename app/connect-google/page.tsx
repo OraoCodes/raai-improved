@@ -86,7 +86,7 @@ export default function ConnectGooglePage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-8">
-      <p className="text-lg text-zinc-700 dark:text-zinc-200">{status}</p>
+      <p className="text-lg text-zinc-700 dark:text-zinc-200 font-medium">{status}</p>
     </div>
   );
 }

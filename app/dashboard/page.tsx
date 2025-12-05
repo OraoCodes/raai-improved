@@ -5,6 +5,7 @@ import Heatmap from "@/components/Heatmap";
 import { connectYouTube } from "@/lib/auth";
 
 type VideoRow = {
+  id: number;
   title: string;
   views: number | null;
   likes: number | null;
@@ -41,7 +42,7 @@ export default function DashboardPage() {
 
       const { data: vids } = await supabase
         .from("videos")
-        .select("title,views,likes,comments,published_at,duration_seconds")
+        .select("id,title,views,likes,comments,published_at,duration_seconds")
         .eq("channel_id", ch.id)
         .order("published_at", { ascending: false })
         .limit(20);
@@ -123,7 +124,7 @@ export default function DashboardPage() {
     if (ch) {
       const { data: vids } = await supabase
         .from("videos")
-        .select("title,views,likes,comments,published_at,duration_seconds")
+        .select("id,title,views,likes,comments,published_at,duration_seconds")
         .eq("channel_id", ch.id)
         .order("published_at", { ascending: false })
         .limit(20);
@@ -139,11 +140,11 @@ export default function DashboardPage() {
   if (!channel) {
     return (
       <div className="p-6 space-y-6">
-        <h2 className="text-2xl font-semibold">Smart Posting Dashboard</h2>
+        <h2 className="text-2xl font-heading font-semibold">Smart Posting Dashboard</h2>
         <div className="rounded border p-6">
-          <h3 className="font-medium mb-2">Connect your YouTube channel</h3>
-          <p className="text-sm text-gray-600 mb-4">You haven’t connected a channel yet. Connect to sync your videos and generate insights.</p>
-          <button onClick={connectYouTube} className="px-4 py-2 rounded bg-black text-white">Connect my Channel</button>
+          <h3 className="font-heading font-medium mb-2">Connect your YouTube channel</h3>
+          <p className="text-sm text-gray-600 mb-4">You haven't connected a channel yet. Connect to sync your videos and generate insights.</p>
+          <button onClick={connectYouTube} className="px-4 py-2 rounded bg-black text-white font-medium">Connect my Channel</button>
         </div>
       </div>
     );
@@ -151,14 +152,16 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-semibold">Smart Posting Dashboard</h2>
+      <h2 className="text-2xl font-heading font-semibold">Smart Posting Dashboard</h2>
 
       {channel && (
         <div className="rounded border p-4 flex items-center justify-between">
           <div>
             <div className="text-sm text-gray-500">Channel</div>
             <div className="font-medium">{channel.title || "My Channel"}</div>
-            <div className="text-sm text-gray-600 mt-1">{channel.subs ?? 0} subs • {channel.views ?? 0} total views • {videoCount} videos</div>
+            <div className="text-sm text-gray-600 mt-1">
+              <span className="font-metric">{(channel.subs ?? 0).toLocaleString()}</span> subs • <span className="font-metric">{(channel.views ?? 0).toLocaleString()}</span> total views • <span className="font-metric">{videoCount}</span> videos
+            </div>
             {(firstUpload || lastUpload) && (
               <div className="text-xs text-gray-500 mt-1">
                 {firstUpload ? `First upload: ${new Date(firstUpload).toLocaleDateString()}` : null}
@@ -170,15 +173,15 @@ export default function DashboardPage() {
               <div className="text-xs text-gray-500 mt-1">Last sync: {new Date(channel.last_sync).toLocaleString()}</div>
             )}
           </div>
-          <button onClick={refreshData} disabled={refreshing} className="px-3 py-2 rounded bg-black text-white disabled:opacity-50">
+          <button onClick={refreshData} disabled={refreshing} className="px-3 py-2 rounded bg-black text-white font-medium disabled:opacity-50">
             {refreshing ? "Refreshing…" : "Refresh now"}
           </button>
         </div>
       )}
 
       <div className="rounded border p-4">
-        <h3 className="font-medium mb-2">AI Insights</h3>
-        <p className="text-gray-800 whitespace-pre-wrap">
+        <h3 className="font-heading font-medium mb-2">AI Insights</h3>
+        <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
           {loading && !insight ? "Loading…" : insight || "No insight yet."}
         </p>
         <div className="mt-3 flex gap-2">
@@ -194,7 +197,7 @@ export default function DashboardPage() {
                 .then((r) => r.json())
                 .then((j) => setInsight(j.summary ?? ""));
             }}
-            className="px-3 py-1 rounded border"
+            className="px-3 py-1 rounded border font-medium"
           >
             Regenerate
           </button>
@@ -205,7 +208,7 @@ export default function DashboardPage() {
               if (!ch) return;
               await supabase.from("insight_feedback").insert({ user_id: (await supabase.auth.getUser()).data.user?.id, channel_id: ch.id, helpful: true });
             }}
-            className="px-3 py-1 rounded border"
+            className="px-3 py-1 rounded border font-medium"
           >
             👍 Helpful
           </button>
@@ -216,7 +219,7 @@ export default function DashboardPage() {
               if (!ch) return;
               await supabase.from("insight_feedback").insert({ user_id: (await supabase.auth.getUser()).data.user?.id, channel_id: ch.id, helpful: false });
             }}
-            className="px-3 py-1 rounded border"
+            className="px-3 py-1 rounded border font-medium"
           >
             👎 Not Helpful
           </button>
@@ -224,18 +227,18 @@ export default function DashboardPage() {
       </div>
 
       <div className="rounded border p-4">
-        <h3 className="font-medium mb-2">Posting Time Heatmap</h3>
+        <h3 className="font-heading font-medium mb-2">Posting Time Heatmap</h3>
         <Heatmap videos={videos.map(v=>({ published_at: v.published_at, views: v.views }))} />
       </div>
 
       <div className="rounded border p-4">
-        <h3 className="font-medium mb-2">Recent Videos</h3>
+        <h3 className="font-heading font-medium mb-2">Recent Videos</h3>
         <ul className="space-y-2">
           {videos.map((v) => (
-            <li key={v.title} className="flex justify-between">
-              <span>{v.title}</span>
-              <span className="text-sm text-gray-600">
-                {v.views ?? 0} views • {Math.max(1, Math.round(v.duration_seconds / 60))} min
+            <li key={v.id} className="flex justify-between gap-4">
+              <span className="flex-1">{v.title}</span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">
+                <span className="font-metric">{(v.views ?? 0).toLocaleString()}</span> views • <span className="font-metric">{Math.max(1, Math.round(v.duration_seconds / 60))}</span> min
               </span>
             </li>
           ))}

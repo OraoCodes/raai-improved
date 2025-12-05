@@ -31,7 +31,7 @@ export default function Heatmap({ videos }: Props) {
         <div className="grid" style={{ gridTemplateColumns: `80px repeat(24, minmax(20px, 1fr))` }}>
           <div />
           {hours.map((h) => (
-            <div key={h} className="text-[10px] text-center text-gray-500">{h}</div>
+            <div key={h} className="text-[10px] text-center text-gray-500 font-metric">{h}</div>
           ))}
           {days.map((d) => (
             <React.Fragment key={d}>
@@ -42,7 +42,7 @@ export default function Heatmap({ videos }: Props) {
                 return (
                   <div
                     key={`${d}-${h}`}
-                    title={`${d} ${String(h).padStart(2, "0")}:00 → ${val} views`}
+                    title={`${d} ${String(h).padStart(2, "0")}:00 → ${val.toLocaleString()} views`}
                     className="h-5 rounded-sm"
                     style={{ backgroundColor: `rgba(0,0,0,${0.05 + 0.55 * (intensity / 100)})` }}
                   />

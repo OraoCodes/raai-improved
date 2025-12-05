@@ -155,7 +155,7 @@ export default function ConnectManualPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-8">
       <div className="max-w-md text-center space-y-4">
-        <p className="text-lg text-zinc-700 dark:text-zinc-200">{status}</p>
+        <p className="text-lg text-zinc-700 dark:text-zinc-200 font-medium">{status}</p>
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
     </div>
