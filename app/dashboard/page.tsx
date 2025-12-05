@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
-import Heatmap from "@/components/Heatmap";
+import ContributionHeatmap from "@/components/ContributionHeatmap";
+import VideoTable from "@/components/VideoTable";
 import { connectYouTube } from "@/lib/auth";
 
 type VideoRow = {
@@ -16,6 +17,7 @@ type VideoRow = {
 
 export default function DashboardPage() {
   const [videos, setVideos] = useState<VideoRow[]>([]);
+  const [allVideosForHeatmap, setAllVideosForHeatmap] = useState<{ published_at: string; views: number | null }[]>([]);
   const [insight, setInsight] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [channel, setChannel] = useState<{ id: number; title?: string | null; subs?: number | null; views?: number | null; last_sync?: string | null } | null>(null);
@@ -68,6 +70,14 @@ export default function DashboardPage() {
         .select("id", { count: "exact", head: true })
         .eq("channel_id", ch.id);
       setVideoCount(countRes.count ?? 0);
+
+      // Fetch ALL videos for heatmap (only lightweight fields)
+      const { data: allVids } = await supabase
+        .from("videos")
+        .select("published_at,views")
+        .eq("channel_id", ch.id)
+        .order("published_at", { ascending: false });
+      setAllVideosForHeatmap(allVids || []);
 
       const { data: first } = await supabase
         .from("videos")
@@ -143,6 +153,14 @@ export default function DashboardPage() {
         .select("id", { count: "exact", head: true })
         .eq("channel_id", ch.id);
       setVideoCount(countRes.count ?? 0);
+
+      // Refresh heatmap data
+      const { data: allVids } = await supabase
+        .from("videos")
+        .select("published_at,views")
+        .eq("channel_id", ch.id)
+        .order("published_at", { ascending: false });
+      setAllVideosForHeatmap(allVids || []);
     }
     setRefreshing(false);
   }
@@ -241,66 +259,23 @@ export default function DashboardPage() {
       </div>
 
       <div className="rounded border p-4">
-        <h3 className="font-heading font-medium mb-2">Posting Time Heatmap</h3>
-        <Heatmap videos={videos.map(v=>({ published_at: v.published_at, views: v.views }))} />
+        <h3 className="font-heading font-medium mb-4">Publishing Activity</h3>
+        <ContributionHeatmap videos={allVideosForHeatmap} />
       </div>
 
       <div className="rounded border p-4">
-        <h3 className="font-heading font-medium mb-2">Recent Videos</h3>
-        <ul className="space-y-2 mb-4 min-h-[400px]">
-          {loadingVideos ? (
-            <li className="flex items-center justify-center py-8 text-gray-500">
-              <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-                <span className="text-sm">Loading videos...</span>
-              </div>
-            </li>
-          ) : (
-            videos.map((v) => (
-              <li key={v.id} className="flex justify-between gap-4">
-                <span className="flex-1">{v.title}</span>
-                <span className="text-sm text-gray-600 whitespace-nowrap">
-                  <span className="font-metric">{(v.views ?? 0).toLocaleString()}</span> views • <span className="font-metric">{Math.max(1, Math.round(v.duration_seconds / 60))}</span> min
-                </span>
-              </li>
-            ))
-          )}
-        </ul>
-        
-        {videoCount > videosPerPage && (
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="text-sm text-gray-600">
-              Showing <span className="font-metric">{((currentPage - 1) * videosPerPage) + 1}</span>–<span className="font-metric">{Math.min(currentPage * videosPerPage, videoCount)}</span> of <span className="font-metric">{videoCount}</span> videos
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={async () => {
-                  const newPage = currentPage - 1;
-                  setCurrentPage(newPage);
-                  if (channel) await fetchVideos(channel.id, newPage);
-                }}
-                disabled={currentPage === 1 || loadingVideos}
-                className="px-3 py-1 rounded border font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              <div className="flex items-center px-3 text-sm">
-                Page <span className="font-metric mx-1">{currentPage}</span> of <span className="font-metric ml-1">{Math.ceil(videoCount / videosPerPage)}</span>
-              </div>
-              <button
-                onClick={async () => {
-                  const newPage = currentPage + 1;
-                  setCurrentPage(newPage);
-                  if (channel) await fetchVideos(channel.id, newPage);
-                }}
-                disabled={currentPage >= Math.ceil(videoCount / videosPerPage) || loadingVideos}
-                className="px-3 py-1 rounded border font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <h3 className="font-heading font-medium mb-4">Videos</h3>
+        <VideoTable
+          videos={videos}
+          totalCount={videoCount}
+          currentPage={currentPage}
+          onPageChange={async (page) => {
+            setCurrentPage(page);
+            if (channel) await fetchVideos(channel.id, page);
+          }}
+          videosPerPage={videosPerPage}
+          loading={loadingVideos}
+        />
       </div>
     </div>
   );
