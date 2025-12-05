@@ -7,6 +7,7 @@ import { connectYouTube } from "@/lib/auth";
 
 type VideoRow = {
   id: number;
+  yt_video_id: string;
   title: string;
   views: number | null;
   likes: number | null;
@@ -27,6 +28,7 @@ export default function DashboardPage() {
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [loadingVideos, setLoadingVideos] = useState<boolean>(false);
+  const [diagnostics, setDiagnostics] = useState<any>(null);
   const videosPerPage = 20;
 
   const fetchVideos = async (channelId: number, page: number) => {
@@ -37,7 +39,7 @@ export default function DashboardPage() {
     
     const { data: vids } = await supabase
       .from("videos")
-      .select("id,title,views,likes,comments,published_at,duration_seconds")
+      .select("id,yt_video_id,title,views,likes,comments,published_at,duration_seconds")
       .eq("channel_id", channelId)
       .order("published_at", { ascending: false })
       .range(start, end);
@@ -50,12 +52,42 @@ export default function DashboardPage() {
     (async () => {
       setLoading(true);
       const supabase = getSupabaseBrowserClient();
+      
+      // Diagnostic check: verify tokens and channel
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: tokenCheck } = await supabase
+        .from("oauth_tokens")
+        .select("user_id,provider,created_at")
+        .eq("user_id", user?.id || "")
+        .maybeSingle();
+      
       const { data: ch } = await supabase
         .from("channels")
-        .select("id,title,subs,views,last_sync")
+        .select("id,title,subs,views,last_sync,user_id")
         .limit(1)
         .maybeSingle();
+      
+      // Store diagnostics for debugging
+      setDiagnostics({
+        hasUser: !!user,
+        userId: user?.id,
+        hasToken: !!tokenCheck,
+        tokenUserId: tokenCheck?.user_id,
+        hasChannel: !!ch,
+        channelUserId: ch?.user_id,
+        userIdMatch: user?.id === ch?.user_id,
+      });
+      
+      console.log("🔍 Connection Diagnostics:", {
+        user: user?.id,
+        tokenStored: !!tokenCheck,
+        channelFound: !!ch,
+        channelUserId: ch?.user_id,
+        match: user?.id === ch?.user_id,
+      });
+      
       if (!ch) {
+        console.warn("⚠️ No channel found for user. Token stored:", !!tokenCheck);
         setChannel(null);
         setLoading(false);
         return;
@@ -173,9 +205,34 @@ export default function DashboardPage() {
     return (
       <div className="p-6 space-y-6">
         <h2 className="text-2xl font-heading font-semibold">Smart Posting Dashboard</h2>
+        
+        {/* Diagnostics Panel */}
+        {diagnostics && (
+          <div className="rounded border border-yellow-300 bg-yellow-50 p-4 text-sm">
+            <div className="font-medium mb-2">🔍 Connection Diagnostics</div>
+            <div className="space-y-1 font-mono text-xs">
+              <div>User ID: {diagnostics.userId ? `✅ ${diagnostics.userId.slice(0, 8)}...` : "❌ None"}</div>
+              <div>Refresh Token Stored: {diagnostics.hasToken ? "✅ Yes" : "❌ No"}</div>
+              <div>Channel Record Found: {diagnostics.hasChannel ? "✅ Yes" : "❌ No"}</div>
+              {diagnostics.hasChannel && (
+                <div>User ID Match: {diagnostics.userIdMatch ? "✅ Yes" : "❌ No (mismatch!)"}</div>
+              )}
+            </div>
+            <div className="mt-2 text-xs text-gray-600">
+              {!diagnostics.hasToken && "Missing refresh token - connection not saved properly"}
+              {diagnostics.hasToken && !diagnostics.hasChannel && "Token exists but channel not synced - sync may have failed"}
+              {diagnostics.hasChannel && !diagnostics.userIdMatch && "User ID mismatch - RLS blocking access"}
+            </div>
+          </div>
+        )}
+        
         <div className="rounded border p-6">
           <h3 className="font-heading font-medium mb-2">Connect your YouTube channel</h3>
-          <p className="text-sm text-gray-600 mb-4">You haven't connected a channel yet. Connect to sync your videos and generate insights.</p>
+          <p className="text-sm text-gray-600 mb-4">
+            {diagnostics?.hasToken 
+              ? "Refresh token found, but channel sync incomplete. Please reconnect to complete setup."
+              : "You haven't connected a channel yet. Connect to sync your videos and generate insights."}
+          </p>
           <button onClick={connectYouTube} className="px-4 py-2 rounded bg-black text-white font-medium">Connect my Channel</button>
         </div>
       </div>

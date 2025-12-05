@@ -3,12 +3,23 @@ import React, { useState, useMemo } from "react";
 
 type Video = {
   id: number;
+  yt_video_id: string;
   title: string;
   views: number | null;
   likes: number | null;
   comments: number | null;
   published_at: string;
   duration_seconds: number;
+};
+
+type Comment = {
+  id: string;
+  author: string;
+  authorProfileImage: string;
+  text: string;
+  likeCount: number;
+  publishedAt: string;
+  replyCount: number;
 };
 
 type Props = {
@@ -33,6 +44,9 @@ export default function VideoTable({ videos, totalCount, currentPage, onPageChan
   const [minViews, setMinViews] = useState<string>("");
   const [maxViews, setMaxViews] = useState<string>("");
   const [durationFilter, setDurationFilter] = useState<string>("all");
+  const [videoComments, setVideoComments] = useState<Map<string, Comment[]>>(new Map());
+  const [loadingComments, setLoadingComments] = useState<Map<string, boolean>>(new Map());
+  const [showComments, setShowComments] = useState<Set<string>>(new Set());
 
   // Calculate engagement rate
   const getEngagementRate = (video: Video) => {
@@ -139,6 +153,61 @@ export default function VideoTable({ videos, totalCount, currentPage, onPageChan
       newExpanded.add(id);
     }
     setExpandedRows(newExpanded);
+  };
+
+  const fetchComments = async (ytVideoId: string) => {
+    // Toggle show comments
+    const newShowComments = new Set(showComments);
+    if (newShowComments.has(ytVideoId)) {
+      newShowComments.delete(ytVideoId);
+      setShowComments(newShowComments);
+      return;
+    }
+
+    // If already fetched, just show them
+    if (videoComments.has(ytVideoId)) {
+      newShowComments.add(ytVideoId);
+      setShowComments(newShowComments);
+      return;
+    }
+
+    // Fetch comments
+    setLoadingComments(new Map(loadingComments.set(ytVideoId, true)));
+    
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/fetch-comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await getSessionToken()}`,
+          },
+          body: JSON.stringify({ videoId: ytVideoId, maxResults: 10 }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setVideoComments(new Map(videoComments.set(ytVideoId, data.comments || [])));
+        newShowComments.add(ytVideoId);
+        setShowComments(newShowComments);
+      }
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+    } finally {
+      setLoadingComments(new Map(loadingComments.set(ytVideoId, false)));
+    }
+  };
+
+  const getSessionToken = async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || "";
   };
 
   const formatDate = (dateStr: string) => {
@@ -367,30 +436,88 @@ export default function VideoTable({ videos, totalCount, currentPage, onPageChan
                     {isExpanded && (
                       <tr className="bg-gray-50">
                         <td colSpan={7} className="px-4 py-4">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <div className="text-gray-600 text-xs uppercase mb-1">Likes</div>
-                              <div className="font-metric font-medium">
-                                {(video.likes || 0).toLocaleString()}
+                          <div className="space-y-4">
+                            {/* Metrics Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <div className="text-gray-600 text-xs uppercase mb-1">Likes</div>
+                                <div className="font-metric font-medium">
+                                  {(video.likes || 0).toLocaleString()}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600 text-xs uppercase mb-1">Comments</div>
+                                <div className="font-metric font-medium">
+                                  {(video.comments || 0).toLocaleString()}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600 text-xs uppercase mb-1">Like Rate</div>
+                                <div className="font-metric font-medium">
+                                  {video.views ? ((video.likes || 0) / video.views * 100).toFixed(2) : 0}%
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600 text-xs uppercase mb-1">Comment Rate</div>
+                                <div className="font-metric font-medium">
+                                  {video.views ? ((video.comments || 0) / video.views * 100).toFixed(2) : 0}%
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <div className="text-gray-600 text-xs uppercase mb-1">Comments</div>
-                              <div className="font-metric font-medium">
-                                {(video.comments || 0).toLocaleString()}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-gray-600 text-xs uppercase mb-1">Like Rate</div>
-                              <div className="font-metric font-medium">
-                                {video.views ? ((video.likes || 0) / video.views * 100).toFixed(2) : 0}%
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-gray-600 text-xs uppercase mb-1">Comment Rate</div>
-                              <div className="font-metric font-medium">
-                                {video.views ? ((video.comments || 0) / video.views * 100).toFixed(2) : 0}%
-                              </div>
+
+                            {/* Comments Section */}
+                            <div className="border-t pt-4">
+                              <button
+                                onClick={() => fetchComments(video.yt_video_id)}
+                                disabled={loadingComments.get(video.yt_video_id) || false}
+                                className="px-3 py-1.5 rounded border font-medium text-sm hover:bg-white transition-colors disabled:opacity-50"
+                              >
+                                {loadingComments.get(video.yt_video_id)
+                                  ? "Loading comments..."
+                                  : showComments.has(video.yt_video_id)
+                                  ? "Hide Comments"
+                                  : "See Comments"}
+                              </button>
+
+                              {showComments.has(video.yt_video_id) && (
+                                <div className="mt-4 space-y-3">
+                                  {videoComments.get(video.yt_video_id)?.length === 0 ? (
+                                    <div className="text-sm text-gray-500 italic">No comments</div>
+                                  ) : (
+                                    videoComments.get(video.yt_video_id)?.map((comment) => (
+                                      <div key={comment.id} className="flex gap-3 pb-3 border-b last:border-0">
+                                        <img
+                                          src={comment.authorProfileImage}
+                                          alt={comment.author}
+                                          className="w-8 h-8 rounded-full"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-medium text-sm">{comment.author}</span>
+                                            <span className="text-xs text-gray-500">
+                                              {new Date(comment.publishedAt).toLocaleDateString()}
+                                            </span>
+                                          </div>
+                                          <div
+                                            className="text-sm text-gray-700 mb-1"
+                                            dangerouslySetInnerHTML={{ __html: comment.text }}
+                                          />
+                                          <div className="flex items-center gap-3 text-xs text-gray-500">
+                                            <span className="font-metric">
+                                              👍 {comment.likeCount.toLocaleString()}
+                                            </span>
+                                            {comment.replyCount > 0 && (
+                                              <span className="font-metric">
+                                                💬 {comment.replyCount} {comment.replyCount === 1 ? "reply" : "replies"}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
-import { signInWithGoogleApp } from "@/lib/auth";
+import { connectYouTube } from "@/lib/auth";
 
 export default function TopBar() {
   const [isAuthed, setIsAuthed] = useState(false);
@@ -21,7 +21,7 @@ export default function TopBar() {
         {!isAuthed ? (
           <button
             className="text-sm text-gray-600 hover:underline font-medium"
-            onClick={signInWithGoogleApp}
+            onClick={connectYouTube}
           >
             Sign in
           </button>

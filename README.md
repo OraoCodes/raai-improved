@@ -25,7 +25,7 @@ TOKEN_ENC_KEY=  # 32-byte base64 (e.g. `openssl rand -base64 32`)
 ### 2) Supabase setup
 
 1. Create a Supabase project and enable Google provider in Auth.
-2. In Google Cloud Console, configure OAuth Consent Screen and add the scope `https://www.googleapis.com/auth/youtube.readonly`.
+2. In Google Cloud Console, configure OAuth Consent Screen and add the scope `https://www.googleapis.com/auth/youtube.force-ssl` (required for comment access).
 3. Set Authorized redirect URI to your Supabase Auth callback (from Supabase dashboard).
 4. In Supabase SQL editor, run `supabase/sql/schema.sql`.
 5. Deploy Edge Functions (requires Supabase CLI installed):
@@ -34,6 +34,7 @@ TOKEN_ENC_KEY=  # 32-byte base64 (e.g. `openssl rand -base64 32`)
 supabase functions deploy store-tokens --no-verify-jwt=false
 supabase functions deploy sync-channel --no-verify-jwt=false
 supabase functions deploy generate-insights --no-verify-jwt=false
+supabase functions deploy fetch-comments --no-verify-jwt=false
 ```
 
 Set the following function secrets (project-level):
@@ -59,5 +60,6 @@ Flow:
 
 - RLS policies allow users to read only their own data.
 - The MVP uses YouTube Data API v3 only (no Analytics API yet).
+- The app uses `youtube.force-ssl` scope to access video data and comments.
 - If refresh tokens are not returned, ensure you pass `access_type=offline` and `prompt=consent`, and your Google app is in testing or production with valid scopes.
 
