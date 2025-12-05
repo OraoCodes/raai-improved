@@ -329,7 +329,7 @@ export default function VideoTable({ videos, totalCount, currentPage, onPageChan
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border rounded-lg">
+      <div className="overflow-x-auto border border-gray-200 rounded-lg">
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
@@ -470,7 +470,7 @@ export default function VideoTable({ videos, totalCount, currentPage, onPageChan
                               <button
                                 onClick={() => fetchComments(video.yt_video_id)}
                                 disabled={loadingComments.get(video.yt_video_id) || false}
-                                className="px-3 py-1.5 rounded border font-medium text-sm hover:bg-white transition-colors disabled:opacity-50"
+                                className="px-3 py-1.5 rounded border border-gray-300 font-medium text-sm hover:bg-white hover:border-gray-400 transition-colors disabled:opacity-50"
                               >
                                 {loadingComments.get(video.yt_video_id)
                                   ? "Loading comments..."
@@ -555,7 +555,7 @@ export default function VideoTable({ videos, totalCount, currentPage, onPageChan
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1 || loading}
-              className="px-3 py-1 rounded border font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 rounded border border-gray-300 font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 hover:border-gray-400"
             >
               Previous
             </button>
@@ -565,7 +565,7 @@ export default function VideoTable({ videos, totalCount, currentPage, onPageChan
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage >= Math.ceil(totalCount / videosPerPage) || loading}
-              className="px-3 py-1 rounded border font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 rounded border border-gray-300 font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 hover:border-gray-400"
             >
               Next
             </button>

@@ -226,7 +226,7 @@ export default function DashboardPage() {
           </div>
         )}
         
-        <div className="rounded border p-6">
+        <div className="rounded border border-gray-200 p-6">
           <h3 className="font-heading font-medium mb-2">Connect your YouTube channel</h3>
           <p className="text-sm text-gray-600 mb-4">
             {diagnostics?.hasToken 
@@ -244,7 +244,7 @@ export default function DashboardPage() {
       <h2 className="text-2xl font-heading font-semibold">Smart Posting Dashboard</h2>
 
       {channel && (
-        <div className="rounded border p-4 flex items-center justify-between">
+        <div className="rounded border border-gray-200 p-4 flex items-center justify-between">
           <div>
             <div className="text-sm text-gray-500">Channel</div>
             <div className="font-medium">{channel.title || "My Channel"}</div>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="rounded border p-4">
+      <div className="rounded border border-gray-200 p-4">
         <h3 className="font-heading font-medium mb-2">AI Insights</h3>
         <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
           {loading && !insight ? "Loading…" : insight || "No insight yet."}
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 .then((r) => r.json())
                 .then((j) => setInsight(j.summary ?? ""));
             }}
-            className="px-3 py-1 rounded border font-medium"
+            className="px-3 py-1 rounded border border-gray-300 font-medium hover:border-gray-400"
           >
             Regenerate
           </button>
@@ -297,7 +297,7 @@ export default function DashboardPage() {
               if (!ch) return;
               await supabase.from("insight_feedback").insert({ user_id: (await supabase.auth.getUser()).data.user?.id, channel_id: ch.id, helpful: true });
             }}
-            className="px-3 py-1 rounded border font-medium"
+            className="px-3 py-1 rounded border border-gray-300 font-medium hover:border-gray-400"
           >
             👍 Helpful
           </button>
@@ -308,19 +308,19 @@ export default function DashboardPage() {
               if (!ch) return;
               await supabase.from("insight_feedback").insert({ user_id: (await supabase.auth.getUser()).data.user?.id, channel_id: ch.id, helpful: false });
             }}
-            className="px-3 py-1 rounded border font-medium"
+            className="px-3 py-1 rounded border border-gray-300 font-medium hover:border-gray-400"
           >
             👎 Not Helpful
           </button>
         </div>
       </div>
 
-      <div className="rounded border p-4">
+      <div className="rounded border border-gray-200 p-4">
         <h3 className="font-heading font-medium mb-4">Publishing Activity</h3>
         <ContributionHeatmap videos={allVideosForHeatmap} />
       </div>
 
-      <div className="rounded border p-4">
+      <div className="rounded border border-gray-200 p-4">
         <h3 className="font-heading font-medium mb-4">Videos</h3>
         <VideoTable
           videos={videos}

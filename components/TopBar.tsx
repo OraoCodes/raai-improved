@@ -14,7 +14,7 @@ export default function TopBar() {
   }, []);
 
   return (
-    <div className="w-full flex items-center justify-between px-6 py-3 border-b">
+    <div className="w-full flex items-center justify-between px-6 py-3 border-b border-gray-200">
       <a href="/" className="font-heading font-medium text-base">YTI</a>
       <div className="flex items-center gap-3">
         {isAuthed && <a className="text-sm text-gray-600 hover:underline font-medium" href="/dashboard">Dashboard</a>}

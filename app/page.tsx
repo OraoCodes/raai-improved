@@ -50,14 +50,14 @@ export default function Home() {
           {!isAuthed || !hasChannel ? (
             <button
               onClick={connectYouTube}
-              className="mt-2 inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-white font-medium transition-colors hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+              className="mt-2 inline-flex items-center justify-center rounded-md border border-gray-300 bg-black px-5 py-3 text-white font-medium transition-colors hover:bg-zinc-800 hover:border-gray-400 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
             >
               {isAuthed ? "Connect YouTube Channel" : "Sign in with YouTube"}
             </button>
           ) : (
             <a 
               href="/dashboard" 
-              className="mt-2 inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-white font-medium transition-colors hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+              className="mt-2 inline-flex items-center justify-center rounded-md border border-gray-300 bg-black px-5 py-3 text-white font-medium transition-colors hover:bg-zinc-800 hover:border-gray-400 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
             >
               Go to Dashboard
             </a>
