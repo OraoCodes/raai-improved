@@ -23,6 +23,26 @@ export default function DashboardPage() {
   const [videoCount, setVideoCount] = useState<number>(0);
   const [firstUpload, setFirstUpload] = useState<string | null>(null);
   const [lastUpload, setLastUpload] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [loadingVideos, setLoadingVideos] = useState<boolean>(false);
+  const videosPerPage = 20;
+
+  const fetchVideos = async (channelId: number, page: number) => {
+    setLoadingVideos(true);
+    const supabase = getSupabaseBrowserClient();
+    const start = (page - 1) * videosPerPage;
+    const end = start + videosPerPage - 1;
+    
+    const { data: vids } = await supabase
+      .from("videos")
+      .select("id,title,views,likes,comments,published_at,duration_seconds")
+      .eq("channel_id", channelId)
+      .order("published_at", { ascending: false })
+      .range(start, end);
+    
+    setVideos((vids as VideoRow[]) || []);
+    setLoadingVideos(false);
+  };
 
   useEffect(() => {
     (async () => {
@@ -40,13 +60,7 @@ export default function DashboardPage() {
       }
       setChannel(ch as any);
 
-      const { data: vids } = await supabase
-        .from("videos")
-        .select("id,title,views,likes,comments,published_at,duration_seconds")
-        .eq("channel_id", ch.id)
-        .order("published_at", { ascending: false })
-        .limit(20);
-      setVideos((vids as VideoRow[]) || []);
+      await fetchVideos(ch.id, currentPage);
 
       // counts and first/last upload dates
       const countRes = await supabase
@@ -119,16 +133,16 @@ export default function DashboardPage() {
     } else {
       return setRefreshing(false);
     }
-    // Re-query
+    // Re-query videos and counts
     const ch = channel;
     if (ch) {
-      const { data: vids } = await supabase
+      await fetchVideos(ch.id, currentPage);
+      
+      const countRes = await supabase
         .from("videos")
-        .select("id,title,views,likes,comments,published_at,duration_seconds")
-        .eq("channel_id", ch.id)
-        .order("published_at", { ascending: false })
-        .limit(20);
-      setVideos((vids as VideoRow[]) || []);
+        .select("id", { count: "exact", head: true })
+        .eq("channel_id", ch.id);
+      setVideoCount(countRes.count ?? 0);
     }
     setRefreshing(false);
   }
@@ -233,16 +247,60 @@ export default function DashboardPage() {
 
       <div className="rounded border p-4">
         <h3 className="font-heading font-medium mb-2">Recent Videos</h3>
-        <ul className="space-y-2">
-          {videos.map((v) => (
-            <li key={v.id} className="flex justify-between gap-4">
-              <span className="flex-1">{v.title}</span>
-              <span className="text-sm text-gray-600 whitespace-nowrap">
-                <span className="font-metric">{(v.views ?? 0).toLocaleString()}</span> views • <span className="font-metric">{Math.max(1, Math.round(v.duration_seconds / 60))}</span> min
-              </span>
+        <ul className="space-y-2 mb-4 min-h-[400px]">
+          {loadingVideos ? (
+            <li className="flex items-center justify-center py-8 text-gray-500">
+              <div className="flex flex-col items-center gap-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                <span className="text-sm">Loading videos...</span>
+              </div>
             </li>
-          ))}
+          ) : (
+            videos.map((v) => (
+              <li key={v.id} className="flex justify-between gap-4">
+                <span className="flex-1">{v.title}</span>
+                <span className="text-sm text-gray-600 whitespace-nowrap">
+                  <span className="font-metric">{(v.views ?? 0).toLocaleString()}</span> views • <span className="font-metric">{Math.max(1, Math.round(v.duration_seconds / 60))}</span> min
+                </span>
+              </li>
+            ))
+          )}
         </ul>
+        
+        {videoCount > videosPerPage && (
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-gray-600">
+              Showing <span className="font-metric">{((currentPage - 1) * videosPerPage) + 1}</span>–<span className="font-metric">{Math.min(currentPage * videosPerPage, videoCount)}</span> of <span className="font-metric">{videoCount}</span> videos
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  const newPage = currentPage - 1;
+                  setCurrentPage(newPage);
+                  if (channel) await fetchVideos(channel.id, newPage);
+                }}
+                disabled={currentPage === 1 || loadingVideos}
+                className="px-3 py-1 rounded border font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              <div className="flex items-center px-3 text-sm">
+                Page <span className="font-metric mx-1">{currentPage}</span> of <span className="font-metric ml-1">{Math.ceil(videoCount / videosPerPage)}</span>
+              </div>
+              <button
+                onClick={async () => {
+                  const newPage = currentPage + 1;
+                  setCurrentPage(newPage);
+                  if (channel) await fetchVideos(channel.id, newPage);
+                }}
+                disabled={currentPage >= Math.ceil(videoCount / videosPerPage) || loadingVideos}
+                className="px-3 py-1 rounded border font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
